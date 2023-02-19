@@ -11,12 +11,12 @@ class Client(Server):
 
     @dispatch()
     def __init__(self) -> None:
-        super(Server, self).__init__()
+        super(Client, self).__init__()
         self.__ip: str = ""
 
     @dispatch(str, int, str)
     def __init__(self, ip: str, port: int, log: str):
-        super(Server, self).__init__(port, log)
+        super(Client, self).__init__(port, log)
         self.__ip: str = ip
 
     @property

@@ -12,8 +12,8 @@ class Server:
         self.__port: int = 0
         self.__log_location: str = ""
 
-    @dispatch(str, int, str)
-    def __init__(self, ip: str, port: int, log: str) -> None:
+    @dispatch(int, str)
+    def __init__(self, port: int, log: str) -> None:
         self.__port: int = int(port)
         self.__log_location: str = log
 
@@ -40,19 +40,22 @@ class Server:
         mysocket.bind((HOST, self.__port))
 
         mysocket.listen()
-        print("Listening")
 
-        INCONN, INADDR = mysocket.accept()
-        print("Incoming connection {}{} = ".format(INCONN, INADDR))
-
-        with INCONN:
+        try:
             while True:
-                data = INCONN.recv(1024)
-                print("Received data of length {}".format(len(data)))
+                INCONN, INADDR = mysocket.accept()
 
-                if not data:
-                    print("Communication ended")
-                    break
+                with INCONN:
+                    print("Received connection from (IP, PORT): {}".format(INADDR))
+                    while True:
+                        data = INCONN.recv(1024)
+                        print("Received data of length {}".format(len(data)))
 
-                print("Echoing back")
-                INCONN.sendall(data)
+                        if not data:
+                            print("Communication ended")
+                            break
+
+                        print("Echoing back")
+                        INCONN.sendall(data)
+        except KeyboardInterrupt:
+            pass

@@ -1,5 +1,5 @@
 ## Project for CSC 4200
-Implementation of a client and a sever program that will a command over a network
+Implementation of a client and a sever program that will send a command over a network
  
 ### Server specifications
 The server takes two arguments:

@@ -1,2 +1,21 @@
+# Byte-compiled / DLL Files
+__pycache__/
+*.py[cod]
+
+# Distribution / Packaging
+.Python
+bin/
+build/
+lib/
+lib64/
+MANIFEST
 .idea
-venv/*
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# mypy
+.mypy_cache/

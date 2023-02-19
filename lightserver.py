@@ -5,29 +5,24 @@ from server.server import Server
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hs:p:l:")
+        opts, args = getopt.getopt(argv, "hp:l:")
     except getopt.GetoptError:
         print("lightserver -p <PORT> -l <LOG FILE LOCATION>")
         sys.exit(2)
 
-    sv = Server()
+    con = Server()
 
     for opt, args in opts:
         if opt == "-h":
             print("lightserver -p <PORT> -l <LOG FILE LOCATION>")
             sys.exit()
-        elif opt == "-s":
-            sv.ip = args
         elif opt == "-p":
-            sv.port = args
+            con.port = args
         elif opt == "-l":
-            sv.log = args
+            con.log = args
 
-    print("IP is ", sv.ip)
-    print("PORT is ", sv.port)
-    print("LOG file is ", sv.log)
+    con.createserver()
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-

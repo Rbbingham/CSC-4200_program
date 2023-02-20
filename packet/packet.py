@@ -6,7 +6,7 @@ class Packet(object):
     Constructs packet
     """
 
-    def __init__(self, data = 0, formatter = ""):
+    def __init__(self, data=0, formatter=""):
         self.__data = data
         self.__formatter = formatter
 
@@ -28,3 +28,7 @@ class Packet(object):
 
     def build(self):
         return struct.pack(self.__formatter, self.__data)
+
+    @staticmethod
+    def unpack(formatter, data):
+        return struct.unpack(formatter, data)

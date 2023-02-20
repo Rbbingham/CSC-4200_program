@@ -1,4 +1,3 @@
-from multipledispatch import dispatch
 import socket
 
 
@@ -7,14 +6,8 @@ class Server:
 
     """
 
-    @dispatch()
-    def __init__(self) -> None:
-        self.__port: int = 0
-        self.__log_location: str = ""
-
-    @dispatch(int, str)
-    def __init__(self, port: int, log: str) -> None:
-        self.__port: int = int(port)
+    def __init__(self, port: int = 0, log: str = "") -> None:
+        self.__port: int = port
         self.__log_location: str = log
 
     @property
@@ -52,7 +45,6 @@ class Server:
                         print("Received data of length {}".format(len(data)))
 
                         if not data:
-                            print("Communication ended")
                             break
 
                         print("Echoing back")

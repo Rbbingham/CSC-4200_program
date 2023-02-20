@@ -1,4 +1,3 @@
-from multipledispatch import dispatch
 from server.server import Server
 from packet.packet import Packet
 import socket
@@ -9,13 +8,7 @@ class Client(Server):
 
     """
 
-    @dispatch()
-    def __init__(self) -> None:
-        super(Client, self).__init__()
-        self.__ip: str = ""
-
-    @dispatch(str, int, str)
-    def __init__(self, ip: str, port: int, log: str):
+    def __init__(self, ip: str = "", port: int = 0, log: str = ""):
         super(Client, self).__init__(port, log)
         self.__ip: str = ip
 
@@ -30,11 +23,14 @@ class Client(Server):
     def conserver(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             client_socket.connect((self.__ip, super().port))
-            packet = Packet()
-            packet.formatter = "!I"
-            packet.data = 1234
+
+            packet = Packet(b"HELLO", "!5s")
             packed_message = packet.build()
             client_socket.sendall(packed_message)
 
             data = client_socket.recv(1024)
-            print(data)
+            unpack_data = packet.unpack(packet.formatter, data)
+            print(unpack_data[0])
+
+            print("Closing socket")
+            client_socket.close()

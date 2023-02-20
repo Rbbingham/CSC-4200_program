@@ -1,4 +1,6 @@
 import socket
+from packet.packet import Packet
+import RPi.GPIO as GPIO
 
 
 class Server:
@@ -28,26 +30,35 @@ class Server:
 
     def createserver(self) -> None:
         HOST = "127.0.0.1"
+        PIN = -99
 
         mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         mysocket.bind((HOST, self.__port))
 
         mysocket.listen()
 
-        try:
-            while True:
-                INCONN, INADDR = mysocket.accept()
+        while True:
+            INCONN, INADDR = mysocket.accept()
 
-                with INCONN:
-                    print("Received connection from (IP, PORT): {}".format(INADDR))
-                    while True:
-                        data = INCONN.recv(1024)
-                        print("Received data of length {}".format(len(data)))
+            with INCONN:
+                print("Received connection from (IP, PORT): {}".format(INADDR))
+                while True:
+                    data = INCONN.recv(1024)
 
-                        if not data:
-                            break
+                    if not data:
+                        break
 
-                        print("Echoing back")
-                        INCONN.sendall(data)
-        except KeyboardInterrupt:
-            pass
+                    try:
+                        PIN, command = Packet.unpack('!ii', data)
+                    except:
+                        print("Bad input")
+                        pass
+
+            if PIN != -99:
+                GPIO.setmode(GPIO.BOARD)
+                GPIO.setup(PIN, GPIO.OUT)
+
+                if command == "LIGHTON":
+                    GPIO.output(PIN, GPIO.HIGH)
+                elif command == "LIGHTOFF":
+                    GPIO.output(PIN, GPIO.LOW)

@@ -1,4 +1,5 @@
 import struct
+import socket
 
 
 class Packet(object):
@@ -6,29 +7,16 @@ class Packet(object):
     Constructs packet
     """
 
-    def __init__(self, data=0, formatter=""):
-        self.__data = data
+    def __init__(self, version: int = 0, type: int = 0, message: str = ""):
+        self.__version = version
+        self.__type = type
+        self.__len_message = len(message)
+        self.__message = message
         self.__formatter = formatter
 
-    @property
-    def data(self):
-        return self.__data
-
-    @property
-    def formatter(self):
-        return self.__formatter
-
-    @data.setter
-    def data(self, data):
-        self.__data = data
-
-    @formatter.setter
-    def formatter(self, formatter):
-        self.__formatter = formatter
-
-    def build(self):
-        return struct.pack(self.__formatter, self.__data)
-
-    @staticmethod
-    def unpack(formatter, data):
-        return struct.unpack(formatter, data)
+        def build(self):
+        version = socket.htons(self.__version)
+        type = socket.htons(self.__type)
+        data = struct.pack('!III', version, type, self.__len_message)
+        data += self.__message.encode()
+        return data

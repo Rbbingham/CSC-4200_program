@@ -48,6 +48,8 @@ class Server:
                     if not data:
                         break
 
+                    mysocket.sendall(data)
+
                     try:
                         PIN, command = Packet.unpack('!ii', data)
                     except:

@@ -19,3 +19,7 @@ venv/
 
 # mypy
 .mypy_cache/
+
+# txt
+*.txt
+!requirements.txt

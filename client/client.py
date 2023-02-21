@@ -1,4 +1,5 @@
 import struct
+import time
 from server.server import Server
 from packet.packet import Packet
 import socket
@@ -33,30 +34,42 @@ class Client(Server):
 
         sock.sendall(hello_packet)
 
-        try:
-            while True:
-                data = sock.recv(struct.calcsize('!III'))
-                version_raw, message_type_raw, length_raw = struct.unpack('!III', data)
-                version = socket.ntohs(version_raw)
-                message_type = socket.ntohs(message_type_raw)
-                length = socket.ntohs(length_raw)
-                print('version: {0:d} type: {1:d} length: {2:d}'.format(version, message_type, length))
+        with open(super().log, "w") as logfile:
+            try:
+                while True:
+                    data = sock.recv(struct.calcsize('!III'))
+                    version_raw, message_type_raw, length_raw = struct.unpack('!III', data)
+                    version = socket.ntohs(version_raw)
+                    message_type = socket.ntohs(message_type_raw)
+                    length = socket.ntohs(length_raw)
+                    print('version: {0:d} type: {1:d} length: {2:d}'.format(version, message_type, length))
+                    logfile.write('version: {0:d} type: {1:d} length: {2:d}'.format(version, message_type, length))
 
-                if version == 17:
-                    print("VERSION ACCEPTED")
-                else:
-                    print("VERSION MISMATCH")
+                    if version == 17:
+                        print("VERSION ACCEPTED")
+                        logfile.write("VERSION ACCEPTED")
+                    else:
+                        print("VERSION MISMATCH")
+                        logfile.write("VERSION MISMATCH")
 
-                message = sock.recv(length).decode()
-                print("Message", message)
+                    message = sock.recv(length).decode()
+                    print("Message", message)
+                    logfile.write("Message")
+                    logfile.write(message)
 
-                if message_type == 1:
-                    print("Sending command")
-                    sock.sendall(command_packet_on)
-                elif message_type == 2 and message == "SUCCESS":
-                    print("Command Successful")
-                    print('Closing socket')
-                    break
+                    if message_type == 1:
+                        print("Sending command")
+                        logfile.write("Sending command")
+                        sock.sendall(command_packet_on)
+                        time.sleep(5)
+                        sock.sendall(command_packet_off)
+                    elif message_type == 2 and message == "SUCCESS":
+                        print("Command Successful")
+                        logfile.write("Command Successful")
+                        print('Closing socket')
+                        logfile.write('Closing socket')
+                        break
 
-        finally:
-            sock.close()
+            finally:
+                sock.close()
+                logfile.close()

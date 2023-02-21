@@ -1,1 +1,2 @@
 multipledispatch~=0.2
+RPi.GPIO~=0.7.1

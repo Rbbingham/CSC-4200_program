@@ -7,6 +7,9 @@ class TestClient(TestCase):
         self.__client = Client("127.0.0.1", 6000, "/tmp/logfile")
         self.__none_client = Client()
 
+    def tearDown(self) -> None:
+        pass
+
     def test_port(self):
         self.assertEqual(6000, self.__client.port)
         self.assertEqual(0, self.__none_client.port)

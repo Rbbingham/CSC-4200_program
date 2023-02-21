@@ -1,11 +1,16 @@
 from unittest import TestCase
 from server.server import Server
+import socket
 
 
 class TestServer(TestCase):
     def setUp(self):
         self.__con = Server(4500, "/tmp/logfile")
+        self.__con.createserver()
         self.__none_con = Server()
+
+    def tearDown(self) -> None:
+        pass
 
     def test_port(self):
         self.assertEqual(4500, self.__con.port)

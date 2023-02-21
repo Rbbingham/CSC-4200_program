@@ -1,7 +1,7 @@
 import socket
 import struct
-import binascii
 from packet.packet import Packet
+import RPi.GPIO as GPIO
 
 
 class Server:
@@ -32,6 +32,9 @@ class Server:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(('127.0.0.1', self.__port))
         sock.listen()
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(2, GPIO.OUT)
 
         with open(self.__log_location, "w") as logfile:
             while True:
@@ -74,11 +77,13 @@ class Server:
                             logfile.write("EXECUTING SUPPORTED COMMAND: " + message + "\n")
 
                             if message == "LIGHTON":
+                                GPIO.output(2, GPIO.HIGH)
                                 print("Returning SUCCESS")
                                 logfile.write("Returning SUCCESS\n")
                                 SUCCESS = Packet(17, 2, "SUCCESS")
                                 INCONN.sendall(SUCCESS.build())
                             elif message == "LIGHTOFF":
+                                GPIO.output(2, GPIO.LOW)
                                 print("Returning SUCCESS")
                                 logfile.write("Returning SUCCESS\n")
                                 SUCCESS = Packet(17, 2, "SUCCESS")

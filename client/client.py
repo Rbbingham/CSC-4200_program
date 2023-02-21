@@ -42,32 +42,34 @@ class Client(Server):
                     version = socket.ntohs(version_raw)
                     message_type = socket.ntohs(message_type_raw)
                     length = socket.ntohs(length_raw)
-                    print('version: {0:d} type: {1:d} length: {2:d}'.format(version, message_type, length))
-                    logfile.write('version: {0:d} type: {1:d} length: {2:d}'.format(version, message_type, length))
+                    message = sock.recv(length).decode()
+
+                    print("Received data: {}".format(message), end=" ")
+                    print("version: {} type: {} length: {}".format(version, message_type, length))
+
+                    logfile.write("Received data: {} ".format(message))
+                    logfile.write("version: {} type: {} length: {}\n".format(version, message_type, length))
 
                     if version == 17:
                         print("VERSION ACCEPTED")
-                        logfile.write("VERSION ACCEPTED")
+                        logfile.write("VERSION ACCEPTED\n")
                     else:
                         print("VERSION MISMATCH")
-                        logfile.write("VERSION MISMATCH")
+                        logfile.write("VERSION MISMATCH\n")
 
-                    message = sock.recv(length).decode()
                     print("Message", message)
-                    logfile.write("Message")
-                    logfile.write(message)
+                    logfile.write("Message " + message + "\n")
 
                     if message_type == 1:
                         print("Sending command")
-                        logfile.write("Sending command")
+                        logfile.write("Sending command\n")
                         sock.sendall(command_packet_on)
-                        time.sleep(5)
+                        time.sleep(3)
                         sock.sendall(command_packet_off)
                     elif message_type == 2 and message == "SUCCESS":
                         print("Command Successful")
-                        logfile.write("Command Successful")
-                        print('Closing socket')
-                        logfile.write('Closing socket')
+                        print("Closing Socket")
+                        logfile.write("Command Successful\nClosing socket\n")
                         break
 
             finally:

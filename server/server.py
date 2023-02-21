@@ -33,45 +33,60 @@ class Server:
         sock.bind(('127.0.0.1', self.__port))
         sock.listen()
 
-        while True:
-            INCONN, INADDR = sock.accept()
-            print("Received connection from (IP, PORT): ", INADDR)
+        with open(self.__log_location, "w") as logfile:
+            while True:
+                INCONN, INADDR = sock.accept()
+                print("Received connection from (IP, PORT): ", INADDR)
+                logfile.write("Received connection from (IP, PORT): " + "".join(map(str, INADDR)) + "\n")
 
-            try:
-                while True:
-                    data = INCONN.recv(struct.calcsize('!III'))
+                try:
+                    while True:
+                        data = INCONN.recv(struct.calcsize('!III'))
 
-                    if len(data) == 0:
-                        break
+                        if len(data) == 0:
+                            break
 
-                    version_raw, message_type_raw, length_raw = struct.unpack('!III', data)
-                    version = socket.ntohs(version_raw)
-                    message_type = socket.ntohs(message_type_raw)
-                    length = socket.ntohs(length_raw)
-                    print('Received data: version: {0:d} message_type: {1:d} length: {2:d}'.format(version, message_type, length))
-                    if version == 17:
-                        print("VERSION ACCEPTED")
+                        version_raw, message_type_raw, length_raw = struct.unpack('!III', data)
+                        version = socket.ntohs(version_raw)
+                        message_type = socket.ntohs(message_type_raw)
+                        length = socket.ntohs(length_raw)
                         message = INCONN.recv(length).decode()
-                    else:
-                        print("VERSION MISMATCH")
-                        continue
 
-                    if message_type == 1:
-                        INCONN.sendall(hello_packet)
-                    elif message_type == 2:
-                        print("EXECUTING SUPPORTED COMMAND: ", message)
+                        print("Received data: {}".format(message), end=" ")
+                        print("version: {} message_type: {} length: {}".format(version, message_type, length))
 
-                        if message == "LIGHTON":
-                            print("Returning SUCCESS")
-                            SUCCESS = Packet(17, 2, "SUCCESS")
-                            INCONN.sendall(SUCCESS.build())
-                        elif message == "LIGHTOFF":
-                            print("Returning SUCCESS")
-                            SUCCESS = Packet(17, 2, "SUCCESS")
-                            INCONN.sendall(SUCCESS.build())
+                        logfile.write("Received data: {}".format(message))
+                        logfile.write(" version: {} message_type: {} length: {}".format(version,
+                                                                                        message_type,
+                                                                                        length) + "\n")
+                        if version == 17:
+                            print("VERSION ACCEPTED")
+                            logfile.write("VERSION ACCEPTED\n")
+                        else:
+                            print("VERSION MISMATCH")
+                            logfile.write("VERSION MISMATCH\n")
+                            continue
 
-                    else:
-                        print("IGNORING UNKNOWN COMMAND: ", message)
+                        if message_type == 1:
+                            INCONN.sendall(hello_packet)
+                        elif message_type == 2:
+                            print("EXECUTING SUPPORTED COMMAND: ", message)
+                            logfile.write("EXECUTING SUPPORTED COMMAND: " + message + "\n")
 
-            finally:
-                INCONN.close()
+                            if message == "LIGHTON":
+                                print("Returning SUCCESS")
+                                logfile.write("Returning SUCCESS\n")
+                                SUCCESS = Packet(17, 2, "SUCCESS")
+                                INCONN.sendall(SUCCESS.build())
+                            elif message == "LIGHTOFF":
+                                print("Returning SUCCESS")
+                                logfile.write("Returning SUCCESS\n")
+                                SUCCESS = Packet(17, 2, "SUCCESS")
+                                INCONN.sendall(SUCCESS.build())
+
+                        else:
+                            print("IGNORING UNKNOWN COMMAND: ", message)
+                            logfile.write("IGNORING UNKNOWN COMMAND: " + message + "\n")
+
+                finally:
+                    INCONN.close()

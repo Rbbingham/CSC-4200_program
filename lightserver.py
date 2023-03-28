@@ -5,7 +5,7 @@ from server.server import Server
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hp:l:")
+        opts, args = getopt.getopt(argv, "hp:l:w:")
     except getopt.GetoptError:
         print("lightserver -p <PORT> -l <LOG FILE LOCATION> -w <WEBPAGE>")
         sys.exit(2)

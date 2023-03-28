@@ -14,7 +14,8 @@ class Client(Server):
     @property
     def ip(self) -> str:
         return self.__ip
-
+    
+    @property
     def file(self) -> str:
         return self.__file
 
@@ -27,11 +28,10 @@ class Client(Server):
         self.__file = file
 
     def conserver(self):
-        hello = Packet(17, 1, "Hello")
-        hello_packet = hello.build()
+        hello = Packet.create_packet(version=17, type=1, message="Hello")
 
-        command = Packet(17, 2, "LIGHTON")
-        command_packet_on = command.build()
+        command_packet_on = Packet.create_packet(version=17, type=2, message="LIGHTON")
+        command_packet_off = Packet.create_packet(version=17, type=2, message="LIGHTOFF")
 
         webpage = Packet.get_webpage(webpage="http://www.python.org")
 
@@ -39,20 +39,23 @@ class Client(Server):
         server_address = (self.__ip, super().port)
 
         buf = 512
-        r = open("test", "rb")
+        r = open("test1", "rb")
         total_read = 0
         data_size = len(webpage)
         data = r.read(buf)
         total_read += 512
 
-        send_data = Packet(sequence_number=100, ack_number=0, ack="Y", syn="N", fin="N", data=data)
+        send_data = Packet(sequence_number=100, ack_number=0, ack='Y', syn='N', fin='N'	, data=data)
         sock.sendto(data, server_address)
+        
+        sock.sendto(hello, server_address)
 
-        while total_read < data_size:
-            if sock.sendto(data, server_address):
-                send_data = Packet(sequence_number=101, ack_number=0, ack="Y", syn="N", fin="N", data=data)
-                data = r.read(buf)
-                total_read += len(send_data) - 12
+#         while total_read < data_size:
+#             if sock.sendto(data, server_address):
+#                 send_data = Packet(sequence_number=101, ack_number=0, ack='Y', syn='N', fin='N', data=data)
+#                 send_data = send_data.build()
+#                 data = r.read(buf)
+#                 total_read += len(send_data) - 12
 
         with open(super().log, "w") as logfile:
             try:

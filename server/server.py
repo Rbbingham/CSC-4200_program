@@ -8,7 +8,7 @@ class Server:
     def __init__(self, port: int = 0, log: str = "", webpage: str = "") -> None:
         self.__port: int = port
         self.__log_location: str = log
-        self.__webpage = webpage
+        self.__webpage: str = webpage
 
     @property
     def port(self) -> int:
@@ -32,42 +32,36 @@ class Server:
 
     @webpage.setter
     def webpage(self, webpage: str) -> None:
-        self.__webpage = webpage
+        self.__webpage = webpage     
 
     def createserver(self) -> None:
-        hello = Packet(17, 1, "Hello")
-        hello_packet = hello.build()
+        hello = Packet.create_packet(version=17, type=1, message="Hello")
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('127.0.0.1', self.__port))
-        sock.listen()
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(2, GPIO.OUT)
-
-        recv_buf = []
-        FIN_SET = 0
 
         with open(self.__log_location, "w") as logfile, open("recv_file", "wb") as w:
             while True:
                 INCONN, INADDR = sock.recvfrom(512)
                 print("Received connection from (IP, PORT): ", INADDR)
                 logfile.write("Received connection from (IP, PORT): " + "".join(map(str, INADDR)) + "\n")
+                w.write(INCONN)
 
                 try:
                     while True:
-                        data = INCONN.recv(struct.calcsize('!III'))
+                        data = sock.recv(struct.calcsize('!III'))
 
                         if len(data) == 0:
                             break
-
-                        w.write(data)
-
+                        
                         version_raw, message_type_raw, length_raw = struct.unpack('!III', data)
                         version = socket.ntohs(version_raw)
                         message_type = socket.ntohs(message_type_raw)
                         length = socket.ntohs(length_raw)
-                        message = INCONN.recv(length).decode()
+                        message = sock.recv(length).decode()
 
                         print("Received data: {}".format(message), end=" ")
                         print("version: {} message_type: {} length: {}".format(version, message_type, length))
@@ -85,7 +79,7 @@ class Server:
                             continue
 
                         if message_type == 1:
-                            INCONN.sendall(hello_packet)
+                            sock.sendall(hello)
                         elif message_type == 2:
                             print("EXECUTING SUPPORTED COMMAND: ", message)
                             logfile.write("EXECUTING SUPPORTED COMMAND: " + message + "\n")
@@ -95,17 +89,17 @@ class Server:
                                 print("Returning SUCCESS")
                                 logfile.write("Returning SUCCESS\n")
                                 SUCCESS = Packet(17, 2, "SUCCESS")
-                                INCONN.sendall(SUCCESS.build())
+                                sock.sendall(SUCCESS.build())
                             elif message == "LIGHTOFF":
                                 GPIO.output(2, GPIO.LOW)
                                 print("Returning SUCCESS")
                                 logfile.write("Returning SUCCESS\n")
                                 SUCCESS = Packet(17, 2, "SUCCESS")
-                                INCONN.sendall(SUCCESS.build())
+                                sock.sendall(SUCCESS.build())
 
                         else:
                             print("IGNORING UNKNOWN COMMAND: ", message)
                             logfile.write("IGNORING UNKNOWN COMMAND: " + message + "\n")
-
-                finally:
-                    INCONN.close()
+                    
+                except socket.timeout:
+                    sock.close()

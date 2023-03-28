@@ -66,7 +66,7 @@ class Packet(object):
         return html
 
     @staticmethod
-    def create_packet(version: int = 0, type: int = 0, message: str = "") -> None:
+    def create_packet(version: int = 0, type: int = 0, message: str = ""):
         data = struct.pack("!I", version)
         data += struct.pack("!I", type)
         data += struct.pack("!I", len(message))

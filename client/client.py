@@ -6,17 +6,25 @@ import socket
 
 
 class Client(Server):
-    def __init__(self, ip: str = "", port: int = 0, log: str = ""):
+    def __init__(self, ip: str = "", port: int = 0, log: str = "", file: str = ""):
         super(Client, self).__init__(port, log)
         self.__ip: str = ip
+        self.__file: str = file
 
     @property
     def ip(self) -> str:
         return self.__ip
 
+    def file(self) -> str:
+        return self.__file
+
     @ip.setter
     def ip(self, ip: str) -> None:
         self.__ip = ip
+
+    @file.setter
+    def file(self, file: str) -> None:
+        self.__file = file
 
     def conserver(self):
         hello = Packet(17, 1, "Hello")
@@ -25,14 +33,26 @@ class Client(Server):
         command = Packet(17, 2, "LIGHTON")
         command_packet_on = command.build()
 
-        command.message = "LIGHTOFF"
-        command_packet_off = command.build()
+        webpage = Packet.get_webpage(webpage="http://www.python.org")
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_address = (self.__ip, super().port)
-        sock.connect(server_address)
 
-        sock.sendall(hello_packet)
+        buf = 512
+        r = open("test", "rb")
+        total_read = 0
+        data_size = len(webpage)
+        data = r.read(buf)
+        total_read += 512
+
+        send_data = Packet(sequence_number=100, ack_number=0, ack="Y", syn="N", fin="N", data=data)
+        sock.sendto(data, server_address)
+
+        while total_read < data_size:
+            if sock.sendto(data, server_address):
+                send_data = Packet(sequence_number=101, ack_number=0, ack="Y", syn="N", fin="N", data=data)
+                data = r.read(buf)
+                total_read += len(send_data) - 12
 
         with open(super().log, "w") as logfile:
             try:
@@ -63,9 +83,7 @@ class Client(Server):
                     if message_type == 1:
                         print("Sending command")
                         logfile.write("Sending command\n")
-                        sock.sendall(command_packet_on)
                         time.sleep(3)
-                        sock.sendall(command_packet_off)
                     elif message_type == 2 and message == "SUCCESS":
                         print("Command Successful")
                         print("Closing Socket")
@@ -75,3 +93,4 @@ class Client(Server):
             finally:
                 sock.close()
                 logfile.close()
+                r.close()

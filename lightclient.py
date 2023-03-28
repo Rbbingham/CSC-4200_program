@@ -5,16 +5,16 @@ from client.client import Client
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hs:p:l:")
+        opts, args = getopt.getopt(argv, "hs:p:l:f:")
     except getopt.GetoptError:
-        print("lightclient -s <SERVER IP> -p <PORT> -l <LOG FILE LOCATION>")
+        print("lightclient -s <SERVER IP> -p <PORT> -l <LOG FILE LOCATION> -f <FILE>")
         sys.exit(2)
 
     con = Client()
 
     for opt, args in opts:
         if opt == "-h":
-            print("lightclient -s <SERVER IP> -p <PORT> -l <LOG FILE LOCATION>")
+            print("lightclient -s <SERVER IP> -p <PORT> -l <LOG FILE LOCATION> -f <FILE>")
             sys.exit()
         elif opt == "-s":
             con.ip = args
@@ -22,6 +22,8 @@ def main(argv):
             con.port = args
         elif opt == "-l":
             con.log = args
+        elif opt == "-f":
+            con.file = args
 
     con.conserver()
 

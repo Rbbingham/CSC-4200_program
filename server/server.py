@@ -5,9 +5,10 @@ import RPi.GPIO as GPIO
 
 
 class Server:
-    def __init__(self, port: int = 0, log: str = "") -> None:
+    def __init__(self, port: int = 0, log: str = "", webpage: str = "") -> None:
         self.__port: int = port
         self.__log_location: str = log
+        self.__webpage = webpage
 
     @property
     def port(self) -> int:
@@ -17,6 +18,10 @@ class Server:
     def log(self) -> str:
         return self.__log_location
 
+    @property
+    def webpage(self) -> str:
+        return self.__webpage
+
     @port.setter
     def port(self, port: int) -> None:
         self.__port = int(port)
@@ -25,20 +30,27 @@ class Server:
     def log(self, log: str) -> None:
         self.__log_location = log
 
+    @webpage.setter
+    def webpage(self, webpage: str) -> None:
+        self.__webpage = webpage
+
     def createserver(self) -> None:
         hello = Packet(17, 1, "Hello")
         hello_packet = hello.build()
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('127.0.0.1', self.__port))
         sock.listen()
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(2, GPIO.OUT)
 
-        with open(self.__log_location, "w") as logfile:
+        recv_buf = []
+        FIN_SET = 0
+
+        with open(self.__log_location, "w") as logfile, open("recv_file", "wb") as w:
             while True:
-                INCONN, INADDR = sock.accept()
+                INCONN, INADDR = sock.recvfrom(512)
                 print("Received connection from (IP, PORT): ", INADDR)
                 logfile.write("Received connection from (IP, PORT): " + "".join(map(str, INADDR)) + "\n")
 
@@ -48,6 +60,8 @@ class Server:
 
                         if len(data) == 0:
                             break
+
+                        w.write(data)
 
                         version_raw, message_type_raw, length_raw = struct.unpack('!III', data)
                         version = socket.ntohs(version_raw)

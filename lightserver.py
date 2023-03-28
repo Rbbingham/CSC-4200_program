@@ -7,19 +7,21 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hp:l:")
     except getopt.GetoptError:
-        print("lightserver -p <PORT> -l <LOG FILE LOCATION>")
+        print("lightserver -p <PORT> -l <LOG FILE LOCATION> -w <WEBPAGE>")
         sys.exit(2)
 
     con = Server()
 
     for opt, args in opts:
         if opt == "-h":
-            print("lightserver -p <PORT> -l <LOG FILE LOCATION>")
+            print("lightserver -p <PORT> -l <LOG FILE LOCATION> -w <WEBPAGE>")
             sys.exit()
         elif opt == "-p":
             con.port = args
         elif opt == "-l":
             con.log = args
+        elif opt == "-w":
+            con.webpage = args
 
     con.createserver()
 

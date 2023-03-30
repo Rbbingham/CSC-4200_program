@@ -1,8 +1,8 @@
 import struct
-import time
 from server.server import Server
 from packet.packet import Packet
 import socket
+import RPi.GPIO as GPIO
 
 
 class Client(Server):
@@ -47,56 +47,46 @@ class Client(Server):
             logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
             ack_num += 1
 
-            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N', data=b"")
+            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin='N', data=b"")
             sock.sendto(send_data.build(), server_address)
             logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'N'))
 
-            while True:
-                data, address = sock.recvfrom(512)
-                (ack_num, seq_num) = struct.unpack("!II", data[:8])
-                (_ack, _syn, _fin) = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
-                (payload, ) = struct.unpack("!501s", data[11:])
-                logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
-                ack_num += 512
+            with open(self.__file, "w") as file:
+                while True:
+                    data, address = sock.recvfrom(512)
+                    (ack_num, seq_num) = struct.unpack("!II", data[:8])
+                    (_ack, _syn, _fin) = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                    (payload, ) = struct.unpack("!{}s".format(len(data[11:])), data[11:])
+                    logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
+                    file.write(payload.decode("utf-8"))
+                    ack_num += len(payload)
 
-                send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N', data=b"")
-                sock.sendto(send_data.build(), server_address)
-                logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'N'))
+                    if _fin == 'Y':
+                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin=_fin, data=b"")
+                        sock.sendto(send_data.build(), server_address)
+                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'Y'))
+                        break
+                    else:
+                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin=_fin, data=b"")
+                        sock.sendto(send_data.build(), server_address)
+                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'N'))
 
-        # with open(super().log, "w") as logfile:
-        #     try:
-        #         while True:
-        #
-        #             print("Received data: {}".format(message), end=" ")
-        #             print("version: {} type: {} length: {}".format(version, message_type, length))
-        #
-        #             logfile.write("Received data: {} ".format(message))
-        #             logfile.write("version: {} type: {} length: {}\n".format(version, message_type, length))
-        #
-        #             if version == 17:
-        #                 print("VERSION ACCEPTED")
-        #                 logfile.write("VERSION ACCEPTED\n")
-        #             else:
-        #                 print("VERSION MISMATCH")
-        #                 logfile.write("VERSION MISMATCH\n")
-        #
-        #             print("Message", message)
-        #             logfile.write("Message " + message + "\n")
-        #
-        #             if message_type == 1:
-        #                 print("Sending command")
-        #                 logfile.write("Sending command\n")
-        #                 time.sleep(3)
-        #             elif message_type == 2 and message == "SUCCESS":
-        #                 print("Command Successful")
-        #                 print("Closing Socket")
-        #                 logfile.write("Command Successful\nClosing socket\n")
-        #                 break
-        #
-        #     finally:
-        #         sock.close()
-        #         logfile.close()
-        #         r.close()
+                file.close()
+
+        with open(self.__file, "r") as file:
+            COMMAND = ""
+            exec(file.readline().strip("\n"))
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(2, GPIO.OUT)
+
+        if COMMAND == "LIGHTON":
+            GPIO.output(2, GPIO.HIGH)
+        elif COMMAND == "LIGHTOFF":
+            GPIO.output(2, GPIO.LOW)
+        else:
+            print("UNKNOWN COMMAND\n")
 
         sock.close()
         logfile.close()
+        file.close()

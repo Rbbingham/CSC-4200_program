@@ -1,7 +1,6 @@
 import socket
 from packet.packet import Packet
 import struct
-# import RPi.GPIO as GPIO
 
 
 class Server:
@@ -61,9 +60,17 @@ class Server:
                     _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
                     logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, _ack, _syn, _fin))
 
-                    while True:
-                        webpage = Packet.get_webpage(webpage=self.__webpage)
-                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N', data=webpage)
+                    webpage = Packet.get_webpage(webpage=self.__webpage)
+                    webpage_iter = [webpage[i:i+502] for i in range(0, len(webpage), 501)]
+
+                    for x in webpage_iter:
+                        if len(x) != 502:
+                            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='Y',
+                                               data=x)
+                        else:
+                            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N',
+                                               data=x)
+
                         sock.sendto(send_data.build(), address)
                         logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'N', 'Y', 'N'))
 
@@ -76,19 +83,6 @@ class Server:
 
                         if _fin == 'Y':
                             break
-
-            # GPIO.setmode(GPIO.BCM)
-        # GPIO.setup(2, GPIO.OUT)
-
-        # with open(self.__log_location, "w") as logfile, open("recv_file", "wb") as w:
-        #     while True:
-        #         data, address = sock.recvfrom(512)
-        #         print("Received connection from (IP, PORT): ", address)
-        #         logfile.write("Received connection from (IP, PORT): {}\n".format(address))
-        #         w.write(address)
-        #
-        #         send_data = Packet(sequence_number=1, ack_number=1, ack='Y', syn='Y', fin='N', data=data)
-        #         sock.sendto(send_data, address)
 
             except socket.timeout:
                 sock.close()

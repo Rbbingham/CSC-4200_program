@@ -13,7 +13,6 @@ class Packet(object):
     def __init__(self, **kwargs) -> None:
         self.__seq_num = kwargs["sequence_number"]
         self.__ack_num = kwargs["ack_number"]
-        self.__padding = ["x"] * 29
         self.__ack = kwargs["ack"]
         self.__syn = kwargs["syn"]
         self.__fin = kwargs["fin"]
@@ -47,12 +46,10 @@ class Packet(object):
     def build(self):
         data = struct.pack('!I', self.__seq_num)
         data += struct.pack('!I', self.__ack_num)
-        # data += struct.pack('!{0}s'.format(len(self.__padding)), self.__padding.encode())
         data += struct.pack("!s", self.__ack.encode('utf-8'))
         data += struct.pack("!s", self.__syn.encode('utf-8'))
         data += struct.pack("!s", self.__fin.encode('utf-8'))
-        data += struct.pack("{0}s".format(len(self.__data)), self.__data)
-        data += self.__data
+        data += struct.pack("{0}s".format(len(self.__data)), self.__data.encode('utf-8'))
         return data
 
     @staticmethod

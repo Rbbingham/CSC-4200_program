@@ -2,7 +2,7 @@ import struct
 from server.server import Server
 from packet.packet import Packet
 import socket
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 
 
 class Client(Server):
@@ -74,8 +74,9 @@ class Client(Server):
                 file.close()
 
         with open(self.__file, "r") as file:
-            COMMAND = ""
-            exec(file.readline().strip("\n"))
+            COMMAND = file.readline().split("=")[1].strip("\n")
+            print(COMMAND)
+
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(2, GPIO.OUT)

@@ -31,30 +31,41 @@ class Client(Server):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_address = (self.__ip, super().port)
 
-        # buf = 512
-        # r = open("test1", "rb")
-        # data_size = len(webpage)
-        # data = r.read(buf)
+        with open(super().log, "w") as logfile:
+            # three-way handshake
+            seq_num = 12345
+            ack_num = 0
+            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='N', syn='Y', fin='N', data=b"")
+            sock.sendto(send_data.build(), server_address)
+            logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'N', 'Y', 'N'))
 
-        send_data = Packet(sequence_number=100, ack_number=0, ack='N', syn='Y', fin='N', data="")
-        sock.sendto(send_data.build(), server_address)
-        
-        data, address = sock.recvfrom(512)
-        print(data)
-        
-        send_data = Packet(sequence_number=101, ack_number=101, ack='Y', syn='N', fin='N', data="")
-        sock.sendto(send_data.build(), server_address)
-        
+            data, address = sock.recvfrom(512)
+            logfile.write("Received connection from (IP, PORT): {}\n".format(address))
+
+            ack_num, seq_num = struct.unpack("!II", data[:8])
+            _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+            logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
+            ack_num += 1
+
+            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N', data=b"")
+            sock.sendto(send_data.build(), server_address)
+            logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'N'))
+
+            while True:
+                data, address = sock.recvfrom(512)
+                (ack_num, seq_num) = struct.unpack("!II", data[:8])
+                (_ack, _syn, _fin) = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                (payload, ) = struct.unpack("!501s", data[11:])
+                logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
+                ack_num += 512
+
+                send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N', data=b"")
+                sock.sendto(send_data.build(), server_address)
+                logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'N'))
 
         # with open(super().log, "w") as logfile:
         #     try:
         #         while True:
-        #             data = sock.recv(struct.calcsize('!III'))
-        #             version_raw, message_type_raw, length_raw = struct.unpack('!III', data)
-        #             version = socket.ntohs(version_raw)
-        #             message_type = socket.ntohs(message_type_raw)
-        #             length = socket.ntohs(length_raw)
-        #             message = sock.recv(length).decode()
         #
         #             print("Received data: {}".format(message), end=" ")
         #             print("version: {} type: {} length: {}".format(version, message_type, length))
@@ -88,3 +99,4 @@ class Client(Server):
         #         r.close()
 
         sock.close()
+        logfile.close()

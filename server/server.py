@@ -1,5 +1,6 @@
 import socket
 from packet.packet import Packet
+import struct
 # import RPi.GPIO as GPIO
 
 
@@ -34,21 +35,49 @@ class Server:
         self.__webpage = webpage     
 
     def createserver(self) -> None:
-        webpage = Packet.get_webpage(webpage=self.__webpage)
-        
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(("127.0.0.1", self.__port))
 
-        data, address = sock.recvfrom(512)
-        print(data)
+        with open(self.__log_location, "w") as logfile, open("recv_file", "wb") as w:
+            try:
+                while True:
+                    # three-way handshake
+                    data, address = sock.recvfrom(512)
+                    logfile.write("Received connection from (IP, PORT): {}\n".format(address))
 
-        send_data = Packet(sequence_number=1, ack_number=1, ack='Y', syn='Y', fin='N', data="")
-        sock.sendto(send_data.build(), address)
+                    _seq, _ackn = struct.unpack("!II", data[:8])
+                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                    logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(_seq, _ackn, _ack, _syn, _fin))
 
-        data, address = sock.recvfrom(512)
-        print(data)
+                    seq_num = 100
+                    ack_num = _seq + 1
+                    send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='Y', fin='N', data=b"")
+                    sock.sendto(send_data.build(), address)
+                    logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'N', 'Y', 'N'))
 
-        # GPIO.setmode(GPIO.BCM)
+                    data, address = sock.recvfrom(512)
+
+                    ack_num, seq_num = struct.unpack("!II", data[:8])
+                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                    logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, _ack, _syn, _fin))
+
+                    while True:
+                        webpage = Packet.get_webpage(webpage=self.__webpage)
+                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N', data=webpage)
+                        sock.sendto(send_data.build(), address)
+                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'N', 'Y', 'N'))
+
+                        data, address = sock.recvfrom(512)
+
+                        ack_num, seq_num = struct.unpack("!II", data[:8])
+                        _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                        logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, _ack, _syn, _fin))
+                        ack_num += 1
+
+                        if _fin == 'Y':
+                            break
+
+            # GPIO.setmode(GPIO.BCM)
         # GPIO.setup(2, GPIO.OUT)
 
         # with open(self.__log_location, "w") as logfile, open("recv_file", "wb") as w:
@@ -61,4 +90,6 @@ class Server:
         #         send_data = Packet(sequence_number=1, ack_number=1, ack='Y', syn='Y', fin='N', data=data)
         #         sock.sendto(send_data, address)
 
-        sock.close()
+            except socket.timeout:
+                sock.close()
+                logfile.close()

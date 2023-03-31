@@ -73,19 +73,22 @@ class Client(Server):
 
                 file.close()
 
-        with open(self.__file, "r") as file:
-            COMMAND = file.readline().split("=")[1].strip("\n")
+        try:
+            with open(self.__file, "r") as file:
+                COMMAND = file.readline().split("=")[1].strip("\n")
 
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(2, GPIO.OUT)
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(2, GPIO.OUT)
 
-        if COMMAND == "LIGHTON":
-            GPIO.output(2, GPIO.HIGH)
-        elif COMMAND == "LIGHTOFF":
-            GPIO.output(2, GPIO.LOW)
-        else:
-            print("UNKNOWN COMMAND\n")
+            if COMMAND == "LIGHTON":
+                GPIO.output(2, GPIO.HIGH)
+            elif COMMAND == "LIGHTOFF":
+                GPIO.output(2, GPIO.LOW)
+            else:
+                print("UNKNOWN COMMAND")
+        except IndexError:
+            print("UNKNOWN COMMAND")
 
         sock.close()
         logfile.close()

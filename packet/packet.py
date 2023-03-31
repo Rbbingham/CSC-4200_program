@@ -51,9 +51,8 @@ class Packet(object):
     def get_webpage(**kwargs):
         page = kwargs["webpage"]
 
-        with urllib.request.urlopen(page) as resp, open("test1", "w") as w:
+        with urllib.request.urlopen(page) as resp:
             html = resp.read()
-            w.write(html.decode())
 
         return html
 

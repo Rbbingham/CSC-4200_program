@@ -58,7 +58,8 @@ class Server:
 
                     ack_num, seq_num = struct.unpack("!II", data[:8])
                     _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
-                    logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, _ack, _syn, _fin))
+                    logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
+                    ack_num += 1
 
                     webpage = Packet.get_webpage(webpage=self.__webpage)
                     webpage_iter = [webpage[i:i+502] for i in range(0, len(webpage), 501)]
@@ -78,7 +79,7 @@ class Server:
 
                         ack_num, seq_num = struct.unpack("!II", data[:8])
                         _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
-                        logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, _ack, _syn, _fin))
+                        logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
                         ack_num += 1
 
                         if _fin == 'Y':

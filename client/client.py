@@ -2,7 +2,7 @@ import struct
 from server.server import Server
 from packet.packet import Packet
 import socket
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 
 
 class Client(Server):
@@ -49,35 +49,34 @@ class Client(Server):
 
             send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin='N', data=b"")
             sock.sendto(send_data.build(), server_address)
-            logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'N'))
+            logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'Y', 'N', 'N'))
 
             with open(self.__file, "w") as file:
                 while True:
                     data, address = sock.recvfrom(512)
-                    (ack_num, seq_num) = struct.unpack("!II", data[:8])
-                    (_ack, _syn, _fin) = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                    ack_num, seq_num = struct.unpack("!II", data[:8])
+                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
                     (payload, ) = struct.unpack("!{}s".format(len(data[11:])), data[11:])
                     logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
                     file.write(payload.decode("utf-8"))
-                    ack_num += len(payload)
+                    ack_num += len(data)
 
                     if _fin == 'Y':
                         send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin=_fin, data=b"")
                         sock.sendto(send_data.build(), server_address)
-                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'Y'))
+                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'Y', 'N', 'Y'))
                         break
                     else:
                         send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin=_fin, data=b"")
                         sock.sendto(send_data.build(), server_address)
-                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'Y', 'N', 'N'))
+                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'Y', 'N', 'N'))
 
                 file.close()
 
         with open(self.__file, "r") as file:
             COMMAND = file.readline().split("=")[1].strip("\n")
-            print(COMMAND)
 
-
+        GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(2, GPIO.OUT)
 

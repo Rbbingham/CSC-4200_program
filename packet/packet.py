@@ -12,6 +12,7 @@ class Packet(object):
     def __init__(self, **kwargs) -> None:
         self.__seq_num = kwargs["sequence_number"]
         self.__ack_num = kwargs["ack_number"]
+        self.__window = kwargs["window"]
         self.__ack = kwargs["ack"]
         self.__syn = kwargs["syn"]
         self.__fin = kwargs["fin"]
@@ -41,6 +42,7 @@ class Packet(object):
     def build(self):
         data = struct.pack('!I', self.__seq_num)
         data += struct.pack('!I', self.__ack_num)
+        data += struct.pack('!I', self.__window)
         data += struct.pack("!c", self.__ack.encode('utf-8'))
         data += struct.pack("!c", self.__syn.encode('utf-8'))
         data += struct.pack("!c", self.__fin.encode('utf-8'))

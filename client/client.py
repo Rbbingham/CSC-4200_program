@@ -2,6 +2,7 @@ import struct
 from server.server import Server
 from packet.packet import Packet
 import socket
+import math
 import RPi.GPIO as GPIO
 
 
@@ -35,7 +36,9 @@ class Client(Server):
             # three-way handshake
             seq_num = 12345
             ack_num = 0
-            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='N', syn='Y', fin='N', data=b"")
+            window_size = 0
+
+            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, window=window_size, ack='N', syn='Y', fin='N', data=b"")
             sock.sendto(send_data.build(), server_address)
             logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, 0, 'N', 'Y', 'N'))
 
@@ -43,11 +46,13 @@ class Client(Server):
             logfile.write("Received connection from (IP, PORT): {}\n".format(address))
 
             ack_num, seq_num = struct.unpack("!II", data[:8])
-            _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+            _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[12:15])]
             logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
-            ack_num += 1
 
-            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin='N', data=b"")
+            ack_num += 1
+            window_size += 1
+
+            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, window=window_size, ack=_ack, syn='N', fin='N', data=b"")
             sock.sendto(send_data.build(), server_address)
             logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'Y', 'N', 'N'))
 
@@ -55,19 +60,25 @@ class Client(Server):
                 while True:
                     data, address = sock.recvfrom(512)
                     ack_num, seq_num = struct.unpack("!II", data[:8])
-                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
-                    (payload, ) = struct.unpack("!{}s".format(len(data[11:])), data[11:])
+                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[12:15])]
+                    (payload, ) = struct.unpack("!{}s".format(len(data[15:])), data[15:])
+
                     logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
                     file.write(payload.decode("utf-8"))
+
                     ack_num += len(data)
+                    window_size += 1
+
+                    if window_size > 497:
+                        window_size = math.floor(window_size / 2)
 
                     if _fin == 'Y':
-                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin=_fin, data=b"")
+                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, window=window_size, ack=_ack, syn='N', fin=_fin, data=b"")
                         sock.sendto(send_data.build(), server_address)
                         logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'Y', 'N', 'Y'))
                         break
                     else:
-                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack=_ack, syn='N', fin=_fin, data=b"")
+                        send_data = Packet(sequence_number=seq_num, ack_number=ack_num, window=window_size, ack=_ack, syn='N', fin=_fin, data=b"")
                         sock.sendto(send_data.build(), server_address)
                         logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'Y', 'N', 'N'))
 

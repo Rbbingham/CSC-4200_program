@@ -4,10 +4,10 @@ import struct
 
 
 class Server:
-    def __init__(self, port: int = 0, log: str = "", webpage: str = "") -> None:
+    def __init__(self, port: int = 0, log: str = "", file: str = "") -> None:
         self.__port: int = port
         self.__log_location: str = log
-        self.__webpage: str = webpage
+        self.__file: str = file
 
     @property
     def port(self) -> int:
@@ -18,8 +18,8 @@ class Server:
         return self.__log_location
 
     @property
-    def webpage(self) -> str:
-        return self.__webpage
+    def file(self) -> str:
+        return self.__file
 
     @port.setter
     def port(self, port: int) -> None:
@@ -29,9 +29,9 @@ class Server:
     def log(self, log: str) -> None:
         self.__log_location = log
 
-    @webpage.setter
-    def webpage(self, webpage: str) -> None:
-        self.__webpage = webpage     
+    @file.setter
+    def file(self, file: str) -> None:
+        self.__file = file     
 
     def createserver(self) -> None:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -44,46 +44,51 @@ class Server:
                     data, address = sock.recvfrom(512)
                     logfile.write("Received connection from (IP, PORT): {}\n".format(address))
 
-                    _seq, _ackn = struct.unpack("!II", data[:8])
-                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                    _seq, _ackn, window_size = struct.unpack("!III", data[:12])
+                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[12:15])]
                     logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(_seq, _ackn, _ack, _syn, _fin))
 
                     seq_num = 100
                     ack_num = _seq + 1
-                    send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='Y', fin='N', data=b"")
+                    send_data = Packet(sequence_number=seq_num, ack_number=ack_num, window=0, ack='Y', syn='Y', fin='N', data=b"")
                     sock.sendto(send_data.build(), address)
                     logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'N', 'Y', 'N'))
 
                     data, address = sock.recvfrom(512)
 
-                    ack_num, seq_num = struct.unpack("!II", data[:8])
-                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
+                    ack_num, seq_num, window_size = struct.unpack("!III", data[:12])
+                    _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[12:15])]
                     logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
+
                     ack_num += 1
+                    sum = 0
 
-                    webpage = Packet.get_webpage(webpage=self.__webpage)
-                    webpage_iter = [webpage[i:i+502] for i in range(0, len(webpage), 501)]
+                    while True:
+                        with open(self.__file, "rb") as f:
+                            f.seek(sum)
+                            data = f.read(window_size)
 
-                    for x in webpage_iter:
-                        if len(x) != 502:
-                            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='Y',
-                                               data=x)
-                        else:
-                            send_data = Packet(sequence_number=seq_num, ack_number=ack_num, ack='Y', syn='N', fin='N',
-                                               data=x)
+                            if len(data) != window_size:
+                                send_data = Packet(sequence_number=seq_num, ack_number=ack_num, window=window_size, ack='Y', syn='N', fin='Y',
+                                                   data=data)
+                            else:
+                                send_data = Packet(sequence_number=seq_num, ack_number=ack_num, window=window_size, ack='Y', syn='N', fin='N',
+                                                   data=data)
 
-                        sock.sendto(send_data.build(), address)
-                        logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'N', 'Y', 'N'))
+                            sock.sendto(send_data.build(), address)
+                            logfile.write("\"SEND\" <{}> <{}> [{}] [{}] [{}]\n".format(seq_num, ack_num, 'N', 'Y', 'N'))
 
-                        data, address = sock.recvfrom(512)
+                            data, address = sock.recvfrom(512)
 
-                        ack_num, seq_num = struct.unpack("!II", data[:8])
-                        _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[8:11])]
-                        logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
-                        ack_num += 1
+                            ack_num, seq_num, window_size = struct.unpack("!III", data[:12])
+                            _ack, _syn, _fin = [x.decode("utf-8") for x in struct.unpack("!ccc", data[12:15])]
+                            logfile.write("\"RECV\" <{}> <{}> [{}] [{}] [{}]\n".format(ack_num, seq_num, _ack, _syn, _fin))
 
-                        if _fin == 'Y':
-                            break
+                            ack_num += 1
+                            sum += window_size - 1
+
+                            if _fin == 'Y':
+                                break
 
             except socket.timeout:
                 sock.close()
